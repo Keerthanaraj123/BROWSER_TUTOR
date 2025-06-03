@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browser Tutor</title>
+  <style>
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      background: linear-gradient(to right, #6a11cb, #2575fc);
+      color: #333;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      color: black;
+      margin-bottom: 20px;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 800px;
+      margin: 0 auto;
+      gap: 20px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100px;
+      padding: 12px;
+      font-size: 16px;
+      border: 2px solid #dcdcdc;
+      border-radius: 8px;
+      resize: none;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #6a11cb;
+    }
+
+    .sample-box {
+      width: 100%;
+      padding: 15px;
+      border: 2px solid #dcdcdc;
+      border-radius: 10px;
+      background: #fff;
+      color: #333;
+      text-align: left;
+    }
+
+    .sample-box h3 {
+      margin-top: 0;
+      color: #6a11cb;
+    }
+
+    .sample-box ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .sample-box ul li {
+      margin: 8px 0;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: linear-gradient(to right, #ff5f6d, #ffc371);
+      color: #fff;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    .loading-message {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #555;
+      background: #fff4e5;
+      padding: 10px;
+      border: 1px solid #ffd6a5;
+      border-radius: 8px;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .status {
+      font-size: 16px;
+      color: #ff5722;
+      margin-top: 10px;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧠 Browser Tutor</h1>
+  <div class="container">
+    <textarea id="questionInput" placeholder="Type your math question..."></textarea>
+    <div class="sample-box">
+      <h3>💬 Question format examples:</h3>
+      <ul>
+        <li><code>integrate(x^2)</code></li>
+        <li><code>derivative(sin(x))</code></li>
+        <li><code>solve(2*x + 5 = 15)</code></li>
+        <li><code>plot x^2 - 4*x + 3</code></li>
+        <li><code>2 + 3 * 4</code></li>
+        <li>What is the Pythagorean theorem?</li>
+        <li>⚠️ Takes time to answer questions other than mathematical problems</li>
+      </ul>
+    </div>
+    <div class="buttons">
+      <button id="solveBtn">Solve</button>
+      <button id="speakBtn">🎤 Speak</button>
+      <button id="uploadBtn">📷 Upload Image</button>
+      <button id="testAIFallbackBtn">💡 Test AI Fallback</button>
+    </div>
+    <div id="loadingMessage" class="loading-message hidden">
+      ⏳ Please wait, loading the model... This may take some time for non-mathematical problems.
+    </div>
+    <div id="status" class="status hidden">
+      ✅ Model loaded! Ready to solve questions.
+    </div>
+    <div id="solutionOutput"></div>
+  </div>
+
+  <script>
+    const solveBtn = document.getElementById("solveBtn");
+    const loadingMessage = document.getElementById("loadingMessage");
+    const statusMessage = document.getElementById("status");
+
+    // Simulate loading the AI model
+    setTimeout(() => {
+      loadingMessage.classList.add("hidden");
+      statusMessage.classList.remove("hidden");
+    }, 3000); // Simulate 3 seconds loading time
+
+    // Simulate solving a question
+    solveBtn.addEventListener("click", () => {
+      const input = document.getElementById("questionInput").value.trim();
+      if (!input) {
+        alert("Please enter a question!");
+        return;
+      }
+
+      // Display loading message while solving
+      loadingMessage.textContent = "⏳ Solving your question...";
+      loadingMessage.classList.remove("hidden");
+
+      setTimeout(() => {
+        loadingMessage.classList.add("hidden");
+        alert(`Solution for "${input}" is computed!`);
+      }, 3000); // Simulate 3 seconds solving time
+    });
+  </script>
+</body>
+</html>
