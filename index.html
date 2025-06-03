@@ -27,6 +27,10 @@
       max-width: 800px;
       margin: 0 auto;
       gap: 20px;
+      background: #fff; /* Added for better content visibility */
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     }
 
     textarea {
@@ -49,7 +53,7 @@
       padding: 15px;
       border: 2px solid #dcdcdc;
       border-radius: 10px;
-      background: #fff;
+      background: #f9f9f9; /* Slightly different background for sample box */
       color: #333;
       text-align: left;
     }
@@ -66,6 +70,13 @@
 
     .sample-box ul li {
       margin: 8px 0;
+      font-family: 'Courier New', Courier, monospace; /* Monospace for code examples */
+      background-color: #eef;
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: inline-block; /* To make background fit content */
+      margin-right: 5px; /* Spacing between examples */
+      margin-bottom: 5px;
     }
 
     .buttons {
@@ -73,6 +84,7 @@
       flex-wrap: wrap;
       gap: 10px;
       justify-content: center;
+      width: 100%;
     }
 
     button {
@@ -95,26 +107,58 @@
       transform: translateY(1px);
     }
 
-    .loading-message {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #555;
-      background: #fff4e5;
-      padding: 10px;
-      border: 1px solid #ffd6a5;
+    /* CSS for hidden elements */
+    .hidden {
+      display: none !important; /* Use !important to ensure it overrides other display styles */
+    }
+
+    #loading {
+      margin-top: 20px;
+      font-size: 1.1em;
+      color: #e65100; /* Darker orange for visibility */
+      background: #fff3e0;
+      padding: 15px;
+      border: 1px solid #ffcc80;
       border-radius: 8px;
       max-width: 400px;
       text-align: center;
+      font-weight: bold;
     }
 
-    .status {
-      font-size: 16px;
-      color: #ff5722;
+    #status {
+      font-size: 1.1em;
+      color: #2e7d32; /* Green for success */
       margin-top: 10px;
+      background: #e8f5e9;
+      padding: 15px;
+      border: 1px solid #a5d6a7;
+      border-radius: 8px;
+      max-width: 600px;
+      text-align: center;
+      font-weight: bold;
     }
 
-    .hidden {
-      display: none;
+    #solutionOutput {
+      margin-top: 20px;
+      padding: 20px;
+      background: #ffffff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      min-height: 80px; /* Ensure it takes some space */
+      text-align: left;
+      line-height: 1.6;
+      white-space: pre-wrap; /* Preserve formatting from AI */
+      word-wrap: break-word; /* Break long words */
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      color: #333;
+      font-size: 1.1em;
+    }
+
+    canvas {
+      background-color: #f0f0f0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-top: 20px;
     }
   </style>
 </head>
@@ -125,58 +169,39 @@
     <div class="sample-box">
       <h3>💬 Question format examples:</h3>
       <ul>
-        <li><code>integrate(x^2)</code></li>
-        <li><code>derivative(sin(x))</code></li>
-        <li><code>solve(2*x + 5 = 15)</code></li>
-        <li><code>plot x^2 - 4*x + 3</code></li>
-        <li><code>2 + 3 * 4</code></li>
-        <li>What is the Pythagorean theorem?</li>
-        <li>⚠️ Takes time to answer questions other than mathematical problems</li>
+        <li><code>integrate(x^2)</code></li><br>
+        <li><code>derivative(sin(x))</code></li><br>
+        <li><code>solve(2*x + 5 = 15)</code></li><br>
+        <li><code>plot x^2 - 4*x + 3</code></li><br>
+        <li><code>2 + 3 * 4</code></li><br>
+        <li>What is the Pythagorean theorem?</li><br>
       </ul>
+      <p style="font-size: 0.9em; color: #777;">⚠️ Note: Loading the AI model for non-mathematical problems (e.g., "What is...") takes time and requires clicking 'Load AI Model' first. Mathematical operations are processed locally.</p>
     </div>
     <div class="buttons">
       <button id="solveBtn">Solve</button>
       <button id="speakBtn">🎤 Speak</button>
       <button id="uploadBtn">📷 Upload Image</button>
+      <input type="file" id="imageInput" accept="image/*" class="hidden">
+      <button id="loadAIModelBtn">🚀 Load AI Model</button>
       <button id="testAIFallbackBtn">💡 Test AI Fallback</button>
     </div>
-    <div id="loadingMessage" class="loading-message hidden">
-      ⏳ Please wait, loading the model... This may take some time for non-mathematical problems.
+
+    <div id="loading" class="loading-message hidden">
+      ⏳ Processing...
     </div>
     <div id="status" class="status hidden">
-      ✅ Model loaded! Ready to solve questions.
+      Click "Load AI Model" to begin!
     </div>
-    <div id="solutionOutput"></div>
+    <div id="solutionOutput" class="hidden"></div>
+    <canvas id="graphCanvas" width="400" height="400" class="hidden"></canvas>
   </div>
 
-  <script>
-    const solveBtn = document.getElementById("solveBtn");
-    const loadingMessage = document.getElementById("loadingMessage");
-    const statusMessage = document.getElementById("status");
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.0.0/math.min.js"></script>
+  <script src="https://unpkg.com/algebrite@latest/dist/algebrite.bundle-for-browser.js"></script>
+  <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+  <script src='https://unpkg.com/tesseract.js@2.1.4/dist/tesseract.min.js'></script>
 
-    // Simulate loading the AI model
-    setTimeout(() => {
-      loadingMessage.classList.add("hidden");
-      statusMessage.classList.remove("hidden");
-    }, 3000); // Simulate 3 seconds loading time
-
-    // Simulate solving a question
-    solveBtn.addEventListener("click", () => {
-      const input = document.getElementById("questionInput").value.trim();
-      if (!input) {
-        alert("Please enter a question!");
-        return;
-      }
-
-      // Display loading message while solving
-      loadingMessage.textContent = "⏳ Solving your question...";
-      loadingMessage.classList.remove("hidden");
-
-      setTimeout(() => {
-        loadingMessage.classList.add("hidden");
-        alert(`Solution for "${input}" is computed!`);
-      }, 3000); // Simulate 3 seconds solving time
-    });
-  </script>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>
