@@ -1,29 +1,46 @@
 // app.js
 
-// 1. Import WebLLM 
+// 1. Import WebLLM
 import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
 // Elements
 const questionInput = document.getElementById('questionInput');
 const solutionOutput = document.getElementById('solutionOutput');
 const loadingIndicator = document.getElementById('loading');
-const graphCanvas = document.getElementById('graphCanvas').getContext('2d');
+const graphCanvasElement = document.getElementById('graphCanvas'); // Get the element itself
+const graphCanvas = graphCanvasElement ? graphCanvasElement.getContext('2d') : null; // Get context only if element exists
 const imageInput = document.getElementById('imageInput');
-const statusDiv = document.getElementById('status'); 
+const statusDiv = document.getElementById('status');
 const loadAIModelBtn = document.getElementById('loadAIModelBtn');
 
 let synth = window.speechSynthesis;
 let chartInstance = null;
-let webLLMEngine = null; 
-const selectedModel = "Phi-3-mini-4k-instruct-q4f16_1-MLC"; 
+let webLLMEngine = null;
+const selectedModel = "Phi-3-mini-4k-instruct-q4f16_1-MLC";
+
+// Helper function to show an element by removing the 'hidden' class
+function showElement(element) {
+    if (element) {
+        element.classList.remove('hidden');
+    }
+}
+
+// Helper function to hide an element by adding the 'hidden' class
+function hideElement(element) {
+    if (element) {
+        element.classList.add('hidden');
+    }
+}
 
 // 2. Initialize WebLLM Engine
 async function initializeWebLLMEngine() {
     if (webLLMEngine) {
         statusDiv.textContent = `Model "${selectedModel}" already loaded or loading.`;
-        return; 
+        showElement(statusDiv); // Ensure status is visible if already loaded
+        return;
     }
 
+    showElement(statusDiv); // Show status div when loading starts
     statusDiv.textContent = `Initializing WebLLM engine and loading model: ${selectedModel}...`;
     loadAIModelBtn.disabled = true;
 
@@ -41,9 +58,8 @@ async function initializeWebLLMEngine() {
         await webLLMEngine.reload(selectedModel);
 
         statusDiv.textContent = `Model "${selectedModel}" loaded successfully!`;
-        // You might want to enable buttons here if they depend on AI being ready
-        // solveBtn.disabled = false; // Example: if solve needs AI, enable it here
-        // testAIFallbackBtn.disabled = false;
+        // Optionally, hide statusDiv after success if you don't want it permanently visible
+        // setTimeout(() => hideElement(statusDiv), 3000); // Hide after 3 seconds
     } catch (error) {
         statusDiv.textContent = `Error loading AI model: ${error.message}`;
         console.error("Error initializing WebLLM Engine:", error);
@@ -57,6 +73,7 @@ async function generateLLMAnswer(prompt) {
     try {
         if (!webLLMEngine || !webLLMEngine.chat) { // Check if engine is loaded and ready
             solutionOutput.innerText = "AI model not loaded. Please click 'Load AI Model' first.";
+            showElement(solutionOutput); // Show output if model not loaded
             console.error("WebLLM engine not initialized or model not loaded.");
             return "AI model not ready.";
         }
@@ -77,10 +94,10 @@ async function generateLLMAnswer(prompt) {
         });
 
         solutionOutput.innerText = "AI thinking..."; // Show initial status
+        showElement(solutionOutput); // Ensure solution output is visible when AI starts thinking
 
         for await (const chunk of chunks) {
             fullLLMResponse += chunk.choices[0]?.delta?.content || "";
-           
             solutionOutput.innerText = fullLLMResponse + " (AI generating...)";
         }
 
@@ -126,31 +143,45 @@ async function generateLLMAnswer(prompt) {
     }
 }
 
-
+// Function to control loading indicator visibility
 function setLoading(isLoading) {
-    loadingIndicator.style.display = isLoading ? 'block' : 'none';
+    if (isLoading) {
+        showElement(loadingIndicator);
+    } else {
+        hideElement(loadingIndicator);
+    }
 }
 
+// Function to clear graph and hide canvas
 function clearGraph() {
     if (chartInstance) {
         chartInstance.destroy();
         chartInstance = null;
     }
+    hideElement(graphCanvasElement); // Hide graph canvas when cleared
 }
 
 // Plot function with Chart.js
 function plotFunction(expr) {
-    clearGraph();
+    clearGraph(); // Clears any existing graph and hides the canvas
+
+    if (!graphCanvasElement) {
+        solutionOutput.innerText = "Error: Graph canvas element not found.";
+        showElement(solutionOutput); // Show output if error
+        return;
+    }
+    if (!graphCanvas) { // Check if getContext('2d') was successful
+        solutionOutput.innerText = "Error: Could not get 2D context for graph canvas.";
+        showElement(solutionOutput); // Show output if error
+        return;
+    }
 
     const xVals = [];
     const yVals = [];
     for (let x = -10; x <= 10; x += 0.2) {
         xVals.push(x.toFixed(2));
         try {
-            // Evaluate function numerically with Algebrite.eval
-            // Replace x in expression string with value, then evaluate
             let expStr = expr.replace(/x/g, `(${x})`);
-            // Use math.evaluate for plotting, which is more robust for numbers
             let y = math.evaluate(expStr);
             yVals.push(parseFloat(y));
         } catch {
@@ -178,6 +209,7 @@ function plotFunction(expr) {
             }
         }
     });
+    showElement(graphCanvasElement); // Show graph canvas after plotting
 }
 
 // Speak text
@@ -234,10 +266,17 @@ async function solveQuestion() {
     const question = questionInput.value.trim();
     if (!question) {
         solutionOutput.innerText = 'Please enter a question.';
+        showElement(solutionOutput); // Show output if no question
+        hideElement(loadingIndicator); // Hide loading if empty
         return;
     }
-    setLoading(true);
-    clearGraph();
+
+    // Clear previous output and hide graph
+    solutionOutput.innerText = '';
+    hideElement(graphCanvasElement);
+    showElement(solutionOutput); // Ensure solution output is visible for new answer
+    setLoading(true); // Show loading indicator
+    clearGraph(); // This already hides the graph canvas
 
     // Handle plot command: plot sin(x) or plot x^2 + 1
     if (question.toLowerCase().startsWith('plot')) {
@@ -246,6 +285,7 @@ async function solveQuestion() {
         solutionOutput.innerText = `Plotted function: ${expr}`;
         setLoading(false);
         speakText(`Plotted function: ${expr}`);
+        solutionOutput.scrollIntoView({ behavior: 'smooth', block: 'end' });
         return;
     }
 
@@ -253,7 +293,6 @@ async function solveQuestion() {
     let usedAI = false;
 
     try {
-       
         let algebriteResult = '';
         if (question.toLowerCase().startsWith('integrate(')) {
             const expr = question.match(/integrate\((.*)\)/)[1];
@@ -263,28 +302,23 @@ async function solveQuestion() {
             algebriteResult = Algebrite.run(`d(${expr})`).toString();
         } else if (question.toLowerCase().startsWith('solve(')) {
             const eqMatch = question.match(/solve\((.*)\)/)[1];
-            // Algebrite solve can be tricky. Try specific forms.
-            algebriteResult = Algebrite.run(`roots(${eqMatch})`).toString(); // For single variable equations like x^2 = 4
+            algebriteResult = Algebrite.run(`roots(${eqMatch})`).toString();
             if (algebriteResult === '[]' || algebriteResult === '()') {
-                 algebriteResult = Algebrite.run(`solve(${eqMatch}, x)`).toString(); // Fallback to solve with variable hint
+                algebriteResult = Algebrite.run(`solve(${eqMatch}, x)`).toString();
             }
         } else {
-            // Try to evaluate numeric or symbolic expressions directly
             algebriteResult = Algebrite.run(question).toString();
         }
 
-        // Check if Algebrite produced a meaningful answer
         if (algebriteResult && algebriteResult !== '()' && algebriteResult !== '[]' && algebriteResult !== 'undefined') {
             answer = `Algebrite Solution: ${algebriteResult}`;
         } else {
-            // --- Fallback to AI using WebLLM ---
             usedAI = true;
             answer = await generateLLMAnswer(question);
         }
 
     } catch (e) {
         console.warn("Algebrite failed, falling back to AI:", e);
-        // Fallback to AI if Algebrite throws an error
         usedAI = true;
         answer = await generateLLMAnswer(question);
     }
@@ -292,6 +326,7 @@ async function solveQuestion() {
     solutionOutput.innerText = answer;
     speakText(answer);
     setLoading(false);
+    solutionOutput.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
 // Event listeners
@@ -302,20 +337,28 @@ imageInput.addEventListener('change', (e) => {
     if (e.target.files.length > 0) handleImageUpload(e.target.files[0]);
 });
 
-// NEW Event Listener for the Load AI Model button
 loadAIModelBtn.addEventListener('click', initializeWebLLMEngine);
 
-// Modified Test AI Fallback Button
 document.getElementById('testAIFallbackBtn').addEventListener('click', async () => {
-    document.getElementById("solutionOutput").innerText = "Testing AI (will load model if not already)...";
+    solutionOutput.innerText = "Testing AI (will load model if not already)...";
+    showElement(solutionOutput); // Ensure output is visible for test message
+    hideElement(graphCanvasElement); // Hide graph during test
     setLoading(true);
     try {
         const res = await generateLLMAnswer("What is the Pythagorean theorem?");
-        document.getElementById("solutionOutput").innerText = res;
+        solutionOutput.innerText = res;
         speakText(res);
+        solutionOutput.scrollIntoView({ behavior: 'smooth', block: 'end' });
     } catch (err) {
-        document.getElementById("solutionOutput").innerText = "AI test failed: " + err.message;
+        solutionOutput.innerText = "AI test failed: " + err.message;
     } finally {
         setLoading(false);
     }
 });
+
+// Initial state on page load: hide elements that should only appear later.
+// The statusDiv is initially hidden in HTML and shown only when 'Load AI Model' is clicked
+// or during AI processing.
+hideElement(loadingIndicator);
+hideElement(solutionOutput);
+hideElement(graphCanvasElement);
