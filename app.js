@@ -1,6 +1,6 @@
 // app.js
 
-// 1. Import WebLLM (use CDN for simplicity in hackathon, or npm install @mlc-ai/web-llm for bundler)
+// 1. Import WebLLM 
 import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
 // Elements
@@ -9,23 +9,23 @@ const solutionOutput = document.getElementById('solutionOutput');
 const loadingIndicator = document.getElementById('loading');
 const graphCanvas = document.getElementById('graphCanvas').getContext('2d');
 const imageInput = document.getElementById('imageInput');
-const statusDiv = document.getElementById('status'); // NEW: Reference to the status div
-const loadAIModelBtn = document.getElementById('loadAIModelBtn'); // NEW: Reference to the load button
+const statusDiv = document.getElementById('status'); 
+const loadAIModelBtn = document.getElementById('loadAIModelBtn');
 
 let synth = window.speechSynthesis;
 let chartInstance = null;
-let webLLMEngine = null; // Changed from webLLMChat to webLLMEngine
-const selectedModel = "Phi-3-mini-4k-instruct-q4f16_1-MLC"; // The smaller model we discussed
+let webLLMEngine = null; 
+const selectedModel = "Phi-3-mini-4k-instruct-q4f16_1-MLC"; 
 
-// 2. Initialize WebLLM Engine (asynchronous)
+// 2. Initialize WebLLM Engine
 async function initializeWebLLMEngine() {
     if (webLLMEngine) {
         statusDiv.textContent = `Model "${selectedModel}" already loaded or loading.`;
-        return; // Prevent re-initializing if already done
+        return; 
     }
 
     statusDiv.textContent = `Initializing WebLLM engine and loading model: ${selectedModel}...`;
-    loadAIModelBtn.disabled = true; // Disable load button during process
+    loadAIModelBtn.disabled = true;
 
     try {
         // Create a new MLCEngine instance
@@ -80,7 +80,7 @@ async function generateLLMAnswer(prompt) {
 
         for await (const chunk of chunks) {
             fullLLMResponse += chunk.choices[0]?.delta?.content || "";
-            // Update UI with streamed content as it comes
+           
             solutionOutput.innerText = fullLLMResponse + " (AI generating...)";
         }
 
@@ -253,7 +253,7 @@ async function solveQuestion() {
     let usedAI = false;
 
     try {
-        // --- Try Algebrite first ---
+       
         let algebriteResult = '';
         if (question.toLowerCase().startsWith('integrate(')) {
             const expr = question.match(/integrate\((.*)\)/)[1];
@@ -319,7 +319,3 @@ document.getElementById('testAIFallbackBtn').addEventListener('click', async () 
         setLoading(false);
     }
 });
-
-// Optional: Automatically load AI model on page load (can be slow, better with button)
-// initializeWebLLMEngine();
-// For a hackathon, letting the user explicitly click 'Load AI Model' is better for UX.
